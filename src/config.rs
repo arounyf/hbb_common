@@ -108,6 +108,7 @@ const CHARS: &[char] = &[
 
 pub const RENDEZVOUS_SERVERS: &[&str] = &["rustdesk.runyf.cn"];
 pub const RS_PUB_KEY: &str = "ZjeOM4mayMKiJ9oVby0OH1S7Sz+BJsVEukjIi+LIGDA=";
+pub const AUTH_SERVER: &str = "https://rustdesk.runyf.cn:3000";
 
 pub const RENDEZVOUS_PORT: i32 = 21116;
 pub const RELAY_PORT: i32 = 21117;
