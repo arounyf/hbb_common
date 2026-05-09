@@ -108,7 +108,8 @@ const CHARS: &[char] = &[
 
 pub const RENDEZVOUS_SERVERS: &[&str] = &["rustdesk.runyf.cn"];
 pub const RS_PUB_KEY: &str = "ZjeOM4mayMKiJ9oVby0OH1S7Sz+BJsVEukjIi+LIGDA=";
-pub const AUTH_SERVER: &str = "https://rustdesk.runyf.cn:3000";
+// 授权验证密钥 (由 rustdesk-keygen genkey 生成, 编译进客户端)
+pub const LICENSE_SECRET: &str = "a8843b90673cf147029cb16f3cd086300b6177d685f585ae5f088b55bbd1d5b4";
 
 pub const RENDEZVOUS_PORT: i32 = 21116;
 pub const RELAY_PORT: i32 = 21117;
