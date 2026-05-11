@@ -109,6 +109,7 @@ const CHARS: &[char] = &[
 pub const RENDEZVOUS_SERVERS: &[&str] = &["rustdesk.runyf.cn"];
 pub const RS_PUB_KEY: &str = "ZjeOM4mayMKiJ9oVby0OH1S7Sz+BJsVEukjIi+LIGDA=";
 pub const LICENSE_SECRET: &str = "a8843b90673cf147029cb16f3cd086300b6177d685f585ae5f088b55bbd1d5b4";
+pub const LICENSE_PUB_KEY: [u8; 32] = [0; 32]; // 全零=跳过验签，更换为真实公钥启用Ed25519
 
 pub const RENDEZVOUS_PORT: i32 = 21116;
 pub const RELAY_PORT: i32 = 21117;
@@ -789,6 +790,51 @@ impl Config {
         rendezvous_server
     }
 
+    fn hex_decode(s: &str) -> Result<Vec<u8>, String> {
+        if s.len() % 2 != 0 { return Err("hex长度错误".into()); }
+        (0..s.len()).step_by(2)
+            .map(|i| u8::from_str_radix(&s[i..i+2], 16).map_err(|e| format!("hex: {e}")))
+            .collect()
+    }
+
+    fn hex_encode(bytes: &[u8]) -> String {
+        bytes.iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    pub fn verify_license_code(code: &str) -> Result<(), String> {
+        if LICENSE_PUB_KEY == [0u8; 32] {
+            return Ok(());
+        }
+        let parts: Vec<&str> = code.trim().split('.').collect();
+        if parts.len() != 2 {
+            return Err("授权码格式错误".into());
+        }
+        let b64 = parts[0].replace('-', "+").replace('_', "/");
+        let payload = base64::decode(&b64, base64::Variant::Original)
+            .map_err(|_| "授权码解码失败".into())?;
+        let sig_bytes = hex_decode(parts[1])?;
+        let sig = sign::Signature::from_slice(&sig_bytes).ok_or("签名长度错误")?;
+        let pk = sign::PublicKey::from_slice(&LICENSE_PUB_KEY).ok_or("公钥无效")?;
+        if !sign::verify_detached(&sig, &payload, &pk) {
+            return Err("授权码无效".into());
+        }
+        #[derive(serde::Deserialize)]
+        struct License { f: String, e: String }
+        let lic: License = serde_json::from_slice(&payload).map_err(|_| "授权码解析失败".into())?;
+        let uuid_hash = sha2::Sha256::digest(crate::get_uuid());
+        let fp = hex_encode(uuid_hash.as_slice())[..16].to_string();
+        if lic.f != fp { return Err("指纹不匹配".into()); }
+        let today: String = chrono::Local::now().format("%Y-%m-%d").to_string();
+        if today > lic.e { return Err(format!("已过期 ({})", lic.e)); }
+        Config::set_option("auth_license".into(), code.to_string());
+        Ok(())
+    }
+
+    pub fn is_authorized() -> bool {
+        if LICENSE_PUB_KEY == [0u8; 32] { return true; }
+        Config::get_option("auth_license") != ""
+    }
+
     pub fn get_rendezvous_servers() -> Vec<String> {
         let s = EXE_RENDEZVOUS_SERVER.read().unwrap().clone();
         if !s.is_empty() {
@@ -812,6 +858,9 @@ impl Config {
             if !ss.is_empty() {
                 return ss;
             }
+        }
+        if !Self::is_authorized() {
+            return vec![];
         }
         return RENDEZVOUS_SERVERS.iter().map(|x| x.to_string()).collect();
     }
