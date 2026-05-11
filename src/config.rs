@@ -801,7 +801,7 @@ impl Config {
         bytes.iter().map(|b| format!("{b:02x}")).collect()
     }
 
-    pub fn verify_license_code(code: &str) -> Result<(), String> {
+    pub fn verify_license_code(code: &str, device_id: &str) -> Result<(), String> {
         if LICENSE_PUB_KEY == [0u8; 32] {
             return Ok(());
         }
@@ -818,11 +818,10 @@ impl Config {
         if !sign::verify_detached(&sig, &payload, &pk) {
             return Err("授权码无效".into());
         }
-        #[derive(serde::Deserialize)]
+        #[derive(Deserialize)]
         struct License { f: String, e: String }
         let lic: License = serde_json::from_slice(&payload).map_err(|_| "授权码解析失败".into())?;
-        let uuid_hash = sha2::Sha256::digest(crate::get_uuid());
-        let fp = hex_encode(uuid_hash.as_slice())[..16].to_string();
+        let fp = hex_encode(sha2::Sha256::digest(device_id.as_bytes()).as_slice())[..16].to_string();
         if lic.f != fp { return Err("指纹不匹配".into()); }
         let today: String = chrono::Local::now().format("%Y-%m-%d").to_string();
         if today > lic.e { return Err(format!("已过期 ({})", lic.e)); }
