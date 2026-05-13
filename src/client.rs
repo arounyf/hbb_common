@@ -464,6 +464,7 @@ impl Client {
             udp_port: udp_nat_port as _,
             force_relay: interface.is_force_relay(),
             socket_addr_v6: ipv6.1.unwrap_or_default(),
+            source_id: Config::get_id(),
             ..Default::default()
         });
         for i in 1..=3 {
