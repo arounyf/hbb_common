@@ -28,6 +28,7 @@ message PunchHoleRequest {
   bool force_relay = 8;
   int32 upnp_port = 9;
   bytes socket_addr_v6 = 10;
+  string source_id = 11;
 }
 
 message ControlPermissions {
