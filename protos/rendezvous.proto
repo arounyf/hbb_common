@@ -16,13 +16,14 @@ enum ConnType {
 
 message RegisterPeerResponse { bool request_pk = 2; }
 
-message PunchHoleRequest { 
-  string id = 1; 
+message PunchHoleRequest {
+  string id = 1;
   NatType nat_type = 2;
   string licence_key = 3;
   ConnType conn_type = 4;
   string token = 5;
   string version = 6;
+  string source_id = 11;
 }
 
 message PunchHole { 
